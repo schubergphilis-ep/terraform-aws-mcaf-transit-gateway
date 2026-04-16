@@ -34,6 +34,12 @@ variable "name" {
   description = "Name of the EC2 Transit Gateway"
 }
 
+variable "region" {
+  type        = string
+  default     = null
+  description = "The AWS region where resources will be created; if omitted the default provider region is used"
+}
+
 variable "route_tables" {
   type        = list(any)
   default     = ["default"]
