@@ -47,6 +47,7 @@ data "aws_region" "default" {}
 ################################################################################
 
 resource "aws_ec2_transit_gateway" "default" {
+  region                          = var.region
   amazon_side_asn                 = var.transit_gateway_asn
   auto_accept_shared_attachments  = var.transit_gateway_auto_accept_shared_attachments ? "enable" : "disable"
   default_route_table_association = var.transit_gateway_default_route_table_association ? "enable" : "disable"
@@ -59,6 +60,7 @@ resource "aws_ec2_transit_gateway" "default" {
 resource "aws_ec2_transit_gateway_route_table" "default" {
   for_each = toset(var.route_tables)
 
+  region             = var.region
   transit_gateway_id = aws_ec2_transit_gateway.default.id
   tags               = merge(var.tags, { Name = each.key })
 }
@@ -114,7 +116,7 @@ data "aws_iam_policy_document" "transit_gateway_cloudwatch_flow_log" {
       "logs:DescribeLogStreams",
     ]
 
-    resources = ["arn:aws:logs:${data.aws_region.default.name}:${data.aws_caller_identity.default.account_id}:log-group:*:*"]
+    resources = ["arn:aws:logs:${coalesce(var.region, data.aws_region.default.region)}:${data.aws_caller_identity.default.account_id}:log-group:*:*"]
   }
 }
 
@@ -125,6 +127,7 @@ data "aws_iam_policy_document" "transit_gateway_cloudwatch_flow_log" {
 resource "aws_cloudwatch_log_group" "transit_gateway_flow_logs" {
   count = var.enable_cloudwatch_flow_logs ? 1 : 0
 
+  region            = var.region
   name              = var.cloudwatch_flow_logs_configuration.log_group_name
   kms_key_id        = var.cloudwatch_flow_logs_configuration.kms_key_arn
   retention_in_days = var.cloudwatch_flow_logs_configuration.retention_in_days
@@ -134,6 +137,7 @@ resource "aws_cloudwatch_log_group" "transit_gateway_flow_logs" {
 resource "aws_flow_log" "cloudwatch_transit_gateway" {
   count = var.enable_cloudwatch_flow_logs ? 1 : 0
 
+  region                   = var.region
   iam_role_arn             = aws_iam_role.transit_gateway_cloudwatch_flow_logs[0].arn
   log_destination          = aws_cloudwatch_log_group.transit_gateway_flow_logs[0].arn
   max_aggregation_interval = var.cloudwatch_flow_logs_configuration.max_aggregation_interval
@@ -144,6 +148,7 @@ resource "aws_flow_log" "cloudwatch_transit_gateway" {
 resource "aws_flow_log" "s3_transit_gateway" {
   count = var.enable_s3_flow_logs ? 1 : 0
 
+  region                   = var.region
   log_destination          = var.s3_flow_logs_configuration.log_destination
   log_destination_type     = "s3"
   max_aggregation_interval = var.s3_flow_logs_configuration.max_aggregation_interval
@@ -163,6 +168,7 @@ resource "aws_flow_log" "s3_transit_gateway" {
 resource "aws_ec2_transit_gateway_peering_attachment" "default" {
   for_each = var.transit_gateway_peering
 
+  region                  = var.region
   peer_account_id         = each.value.peer_account_id
   peer_region             = each.value.peer_region
   peer_transit_gateway_id = each.value.peer_transit_gateway_id
@@ -173,6 +179,7 @@ resource "aws_ec2_transit_gateway_peering_attachment" "default" {
 resource "aws_ec2_transit_gateway_route_table_association" "peering" {
   for_each = { for name, peering_configuration in var.transit_gateway_peering : name => peering_configuration if peering_configuration.route_table_association != "" }
 
+  region                         = var.region
   transit_gateway_attachment_id  = aws_ec2_transit_gateway_peering_attachment.default[each.key].id
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.default[each.value.route_table_association].id
 }
@@ -180,6 +187,7 @@ resource "aws_ec2_transit_gateway_route_table_association" "peering" {
 resource "aws_ec2_transit_gateway_route" "peering" {
   for_each = { for route in local.transit_gateway_peering_routes : "${route.peer_name}_${route.route_table}_${route.route}" => route }
 
+  region                         = var.region
   destination_cidr_block         = each.value.route
   transit_gateway_attachment_id  = aws_ec2_transit_gateway_peering_attachment.default[each.value.peer_name].id
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.default[each.value.route_table].id
@@ -200,6 +208,7 @@ resource "aws_ram_resource_share" "default" {
 resource "aws_ram_resource_association" "default" {
   count = length(var.transit_gateway_sharing) == 0 ? 0 : 1
 
+  region             = var.region
   resource_arn       = aws_ec2_transit_gateway.default.arn
   resource_share_arn = aws_ram_resource_share.default[0].arn
 }
@@ -207,6 +216,7 @@ resource "aws_ram_resource_association" "default" {
 resource "aws_ram_principal_association" "default" {
   for_each = var.transit_gateway_sharing
 
+  region             = var.region
   principal          = each.value.principal
   resource_share_arn = aws_ram_resource_share.default[0].arn
 }
@@ -214,6 +224,7 @@ resource "aws_ram_principal_association" "default" {
 resource "aws_ec2_transit_gateway_vpc_attachment_accepter" "default" {
   for_each = { for name, sharing_configuration in var.transit_gateway_sharing : name => sharing_configuration if sharing_configuration.transit_gateway_attachment_id != "" }
 
+  region                                          = var.region
   transit_gateway_attachment_id                   = each.value.transit_gateway_attachment_id
   transit_gateway_default_route_table_association = false
   transit_gateway_default_route_table_propagation = false
@@ -230,6 +241,7 @@ resource "time_sleep" "ten_seconds" {
 resource "aws_ec2_transit_gateway_route_table_association" "sharing" {
   for_each = { for name, sharing_configuration in var.transit_gateway_sharing : name => sharing_configuration if sharing_configuration.transit_gateway_attachment_id != "" }
 
+  region                         = var.region
   transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment_accepter.default[each.key].transit_gateway_attachment_id
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.default[each.value.route_table_association].id
   depends_on                     = [time_sleep.ten_seconds]
@@ -238,6 +250,7 @@ resource "aws_ec2_transit_gateway_route_table_association" "sharing" {
 resource "aws_ec2_transit_gateway_route_table_propagation" "sharing" {
   for_each = { for route_table in local.transit_gateway_sharing_route_table_propagation : route_table.route_table => route_table if route_table.transit_gateway_attachment_id != "" }
 
+  region                         = var.region
   transit_gateway_attachment_id  = each.value.transit_gateway_attachment_id
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.default[each.value.route_table].id
   depends_on                     = [time_sleep.ten_seconds]
@@ -250,6 +263,7 @@ resource "aws_ec2_transit_gateway_route_table_propagation" "sharing" {
 resource "aws_customer_gateway" "default" {
   for_each = var.vpn_connection
 
+  region     = var.region
   ip_address = each.value.customer_gateway_ip_address
   bgp_asn    = each.value.customer_gateway_bgp_asn
   type       = "ipsec.1"
@@ -259,6 +273,7 @@ resource "aws_customer_gateway" "default" {
 resource "aws_vpn_connection" "default" {
   for_each = var.vpn_connection
 
+  region                                  = var.region
   customer_gateway_id                     = aws_customer_gateway.default[each.key].id
   outside_ip_address_type                 = each.value.outside_ip_address_type
   transit_gateway_id                      = aws_ec2_transit_gateway.default.id
@@ -321,6 +336,7 @@ resource "aws_vpn_connection" "default" {
 resource "aws_ec2_transit_gateway_route_table_association" "vpn" {
   for_each = var.vpn_connection
 
+  region                         = var.region
   transit_gateway_attachment_id  = aws_vpn_connection.default[each.key].transit_gateway_attachment_id
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.default[each.value.route_table_association].id
 }
@@ -328,6 +344,7 @@ resource "aws_ec2_transit_gateway_route_table_association" "vpn" {
 resource "aws_ec2_transit_gateway_route_table_propagation" "vpn" {
   for_each = { for vpn in local.vpn_connection_route_table_propagation : "${vpn.name}_${vpn.route_table}" => vpn }
 
+  region                         = var.region
   transit_gateway_attachment_id  = aws_vpn_connection.default[each.value.name].transit_gateway_attachment_id
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.default[each.value.route_table].id
 }
@@ -335,6 +352,7 @@ resource "aws_ec2_transit_gateway_route_table_propagation" "vpn" {
 resource "aws_ec2_tag" "vpn" {
   for_each = var.vpn_connection
 
+  region      = var.region
   resource_id = aws_vpn_connection.default[each.key].transit_gateway_attachment_id
   key         = "Name"
   value       = each.key
@@ -347,6 +365,7 @@ resource "aws_ec2_tag" "vpn" {
 resource "aws_cloudwatch_log_group" "transit_gateway_vpn_logs" {
   for_each = { for name, vpn_configuration in var.vpn_connection : name => vpn_configuration if vpn_configuration.enable_logs }
 
+  region            = var.region
   name              = "${each.value.log_group_name}-${each.key}"
   kms_key_id        = each.value.log_kms_key_arn
   retention_in_days = each.value.retention_in_days
