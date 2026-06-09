@@ -6,6 +6,10 @@ module "transit_gateway" {
 
   route_tables = ["shared", "vpc", "isolated"]
 
+  cloudwatch_flow_logs_configuration = {
+    kms_key_arn = module.kms_key.arn
+  }
+
   transit_gateway_sharing = {
     sharing-1 = {
       principal                     = "222222222222"

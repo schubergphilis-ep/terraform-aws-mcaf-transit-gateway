@@ -1,15 +1,23 @@
 variable "cloudwatch_flow_logs_configuration" {
   type = object({
-    iam_policy_name_prefix   = optional(string, "transit-gateway-flow-logs-to-cloudwatch-")
-    iam_role_name_prefix     = optional(string, "transit-gateway-flow-logs-role-")
-    kms_key_arn              = optional(string)
-    log_group_name           = optional(string, "/platform/transit-gateway-flow-logs")
-    max_aggregation_interval = optional(number, 60)
-    retention_in_days        = optional(number, 90)
-    traffic_type             = optional(string, "ALL")
+    iam_path                      = optional(string, "/")
+    iam_policy_name_prefix        = optional(string, "transit-gateway-flow-logs-to-cloudwatch-")
+    iam_role_name_prefix          = optional(string, "transit-gateway-flow-logs-role-")
+    iam_role_permissions_boundary = optional(string)
+    kms_key_arn                   = optional(string)
+    log_format                    = optional(string)
+    log_group_name                = optional(string, "/platform/transit-gateway-flow-logs")
+    max_aggregation_interval      = optional(number, 60)
+    retention_in_days             = optional(number, 90)
+    traffic_type                  = optional(string, "ALL")
   })
   default     = {}
   description = "Cloudwatch flow logs configuration"
+
+  validation {
+    condition     = var.enable_cloudwatch_flow_logs == false || var.cloudwatch_flow_logs_configuration.kms_key_arn != null
+    error_message = "kms_key_arn must be set when enable_cloudwatch_flow_logs is true."
+  }
 }
 
 variable "description" {
@@ -124,7 +132,7 @@ variable "vpn_connection" {
     enable_logs                             = optional(bool, true)
     log_group_arn                           = optional(string)
     log_group_name                          = optional(string, "/platform/transit-gateway-vpn-logs")
-    log_kms_key_arn                         = optional(string)
+    log_kms_key_arn                         = string
     log_output_format                       = optional(string, "json")
     outside_ip_address_type                 = optional(string, "PublicIpv4")
     retention_in_days                       = optional(number, 90)

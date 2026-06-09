@@ -3,28 +3,18 @@ data "aws_caller_identity" "default" {}
 data "aws_region" "default" {}
 
 module "kms_key" {
-  source      = "github.com/schubergphilis/terraform-aws-mcaf-kms?ref=v0.2.0"
+  source  = "schubergphilis/mcaf-kms/aws"
+  version = "~> 2.0.0"
+
   name        = "transit-gateway-logs"
   description = "KMS key used for encrypting flow logs from transit-gateway"
-  policy      = data.aws_iam_policy_document.kms_key_policy.json
-  tags        = {}
+
+  default_policy = {
+    source_policy_documents = [data.aws_iam_policy_document.kms_key_policy.json]
+  }
 }
 
 data "aws_iam_policy_document" "kms_key_policy" {
-  statement {
-    sid       = "Base Permissions"
-    actions   = ["kms:*"]
-    effect    = "Allow"
-    resources = ["arn:aws:kms:${data.aws_region.default.name}:${data.aws_caller_identity.default.account_id}:key/*"]
-
-    principals {
-      type = "AWS"
-      identifiers = [
-        "arn:aws:iam::${data.aws_caller_identity.default.account_id}:root"
-      ]
-    }
-  }
-
   statement {
     sid = "Allow all Cloudwatch groups in this account"
     actions = [
@@ -35,10 +25,10 @@ data "aws_iam_policy_document" "kms_key_policy" {
       "kms:Describe"
     ]
     effect    = "Allow"
-    resources = ["arn:aws:kms:${data.aws_region.default.name}:${data.aws_caller_identity.default.account_id}:key/*"]
+    resources = ["arn:aws:kms:${data.aws_region.default.region}:${data.aws_caller_identity.default.account_id}:key/*"]
 
     principals {
-      identifiers = ["logs.${data.aws_region.default.name}.amazonaws.com"]
+      identifiers = ["logs.${data.aws_region.default.region}.amazonaws.com"]
       type        = "Service"
     }
 
@@ -47,7 +37,7 @@ data "aws_iam_policy_document" "kms_key_policy" {
       variable = "kms:EncryptionContext:aws:logs:arn"
 
       values = [
-        "arn:aws:logs:${data.aws_region.default.name}:${data.aws_caller_identity.default.account_id}:*"
+        "arn:aws:logs:${data.aws_region.default.region}:${data.aws_caller_identity.default.account_id}:*"
       ]
     }
   }

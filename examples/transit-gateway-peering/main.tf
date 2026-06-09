@@ -6,6 +6,10 @@ module "transit_gateway" {
 
   route_tables = ["shared", "vpc", "isolated"]
 
+  cloudwatch_flow_logs_configuration = {
+    kms_key_arn = module.kms_key.arn
+  }
+
   transit_gateway_peering = {
     peering-1 = {
       peer_account_id         = "111111111111",
