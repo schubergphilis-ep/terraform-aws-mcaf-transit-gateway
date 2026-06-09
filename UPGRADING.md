@@ -6,7 +6,7 @@ This document captures the required refactoring on your part when upgrading to a
 
 ### Key Changes v2.0.0
 
-This module now requires all logs to be encrypted with KMS.
+This module now requires all logs to be encrypted with KMS. Please be aware that the KMS key policies in the examples are now more secure and have less permissive default statements. Review the resulting key policy before applying.
 
 ## Upgrading to v1.0.0
 
