@@ -72,8 +72,10 @@ resource "aws_ec2_transit_gateway_route_table" "default" {
 resource "aws_iam_role" "transit_gateway_cloudwatch_flow_logs" {
   count = var.enable_cloudwatch_flow_logs ? 1 : 0
 
-  name_prefix        = var.cloudwatch_flow_logs_configuration.iam_role_name_prefix
-  assume_role_policy = data.aws_iam_policy_document.transit_gateway_cloudwatch_flow_logs_assume_role.json
+  name_prefix          = var.cloudwatch_flow_logs_configuration.iam_role_name_prefix
+  assume_role_policy   = data.aws_iam_policy_document.transit_gateway_cloudwatch_flow_logs_assume_role.json
+  permissions_boundary = var.cloudwatch_flow_logs_configuration.iam_role_permissions_boundary
+  path                 = var.cloudwatch_flow_logs_configuration.iam_path
 }
 
 data "aws_iam_policy_document" "transit_gateway_cloudwatch_flow_logs_assume_role" {
@@ -140,9 +142,11 @@ resource "aws_flow_log" "cloudwatch_transit_gateway" {
   region                   = var.region
   iam_role_arn             = aws_iam_role.transit_gateway_cloudwatch_flow_logs[0].arn
   log_destination          = aws_cloudwatch_log_group.transit_gateway_flow_logs[0].arn
+  log_format               = var.cloudwatch_flow_logs_configuration.log_format
   max_aggregation_interval = var.cloudwatch_flow_logs_configuration.max_aggregation_interval
   traffic_type             = var.cloudwatch_flow_logs_configuration.traffic_type
   transit_gateway_id       = aws_ec2_transit_gateway.default.id
+  tags                     = var.tags
 }
 
 resource "aws_flow_log" "s3_transit_gateway" {
@@ -154,6 +158,7 @@ resource "aws_flow_log" "s3_transit_gateway" {
   max_aggregation_interval = var.s3_flow_logs_configuration.max_aggregation_interval
   traffic_type             = var.s3_flow_logs_configuration.traffic_type
   transit_gateway_id       = aws_ec2_transit_gateway.default.id
+  tags                     = var.tags
 
   destination_options {
     file_format        = var.s3_flow_logs_configuration.file_format

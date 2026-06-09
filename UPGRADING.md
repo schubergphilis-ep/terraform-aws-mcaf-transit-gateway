@@ -2,6 +2,12 @@
 
 This document captures the required refactoring on your part when upgrading to a module version that contains breaking changes.
 
+## Upgrading to v2.0.0
+
+### Key Changes v2.0.0
+
+This module now requires all logs to be encrypted with KMS.
+
 ## Upgrading to v1.0.0
 
 ### Key Changes v1.0.0
