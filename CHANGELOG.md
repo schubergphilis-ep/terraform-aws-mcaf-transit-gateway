@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.1](https://github.com/schubergphilis-ep/terraform-aws-mcaf-transit-gateway/compare/v2.0.0...v2.0.1) (2026-07-07)
+
+
+### 🐛 Fixes
+
+* migrate MCAF module sources ([#2](https://github.com/schubergphilis-ep/terraform-aws-mcaf-transit-gateway/issues/2)) ([0b8be89](https://github.com/schubergphilis-ep/terraform-aws-mcaf-transit-gateway/commit/0b8be8979b236a299528ab5b3695eeda38ea088e))
+
 ## [2.0.0](https://github.com/schubergphilis-ep/terraform-aws-mcaf-transit-gateway/compare/v1.0.0...v2.0.0) (2026-06-09)
 
 
@@ -94,4 +101,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * enhancement(github): Update Github workflows ([#3](https://github.com/schubergphilis/terraform-aws-mcaf-transit-gateway/pull/3)) ([5af8a90](https://github.com/schubergphilis-ep/terraform-aws-mcaf-transit-gateway/commit/5af8a90cbf145d5aa758e9ced41d993ff1475dc7))
 
 ## 0.1.0 (2023-03-29)
-
