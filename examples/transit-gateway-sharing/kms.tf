@@ -3,7 +3,7 @@ data "aws_caller_identity" "default" {}
 data "aws_region" "default" {}
 
 module "kms_key" {
-  source  = "schubergphilis/mcaf-kms/aws"
+  source  = "schubergphilis-ep/mcaf-kms/aws"
   version = "~> 2.0.0"
 
   name        = "transit-gateway-logs"
